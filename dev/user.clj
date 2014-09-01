@@ -4,8 +4,9 @@
                :only (trace debug info warn error fatal spy)]
             [clojure.core.async :as async]
             [cheshire.core :as json]
-            [scraper.core :as scraper])
-  (:import [javafx.concurrent Worker$State]))
+            [com.nervestaple.scraper.sync :as scraper]
+            [com.nervestaple.scraper.artoo :as r2]
+            [com.nervestaple.scraper.gui :as ui]))
 
 (def LOG-FILE "scraper.log")
 
@@ -29,23 +30,3 @@
 
 (defn setup []
   (start-file-logging LOG-FILE))
-
-(defn get-web-engine []
-  (async/<!! (scraper/get-web-engine)))
-
-(defn load-url [web-engine-map url]
-  (let [result-channel (scraper/load-url web-engine-map url)]
-    (loop [state (async/<!! result-channel)]
-      (timbre/info "STATE: " state)
-      (if (not (= (:new state) Worker$State/SUCCEEDED))
-        (recur (async/<!! result-channel))
-        state))))
-
-(defn run-js [web-engine-map js]
-  (async/<!! (scraper/run-js web-engine-map js)))
-
-(defn run-js-json [web-engine-map js]
-  (async/<!! (scraper/run-js-json web-engine-map js)))
-
-(defn get-html [web-engine]
-  (run-js web-engine "document.documentElement.outerHTML"))

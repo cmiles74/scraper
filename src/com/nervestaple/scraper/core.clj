@@ -1,4 +1,4 @@
-(ns scraper.core
+(ns com.nervestaple.scraper.core
   (:require [taoensso.timbre :as timbre
                :only (trace debug info warn error fatal spy)]
             [clojure.core.async :as async]
@@ -9,18 +9,6 @@
            [javafx.beans.value ChangeListener]
            [javafx.scene.web WebView]
            [javafx.concurrent Worker$State]))
-
-;; Javascript to inject the Artoo scraper into loaded pages
-(def LOAD_ARTOO "(function() {
-    var t = {},
-        e = !0;
-    if (\"object\" == typeof this.artoo && (artoo.settings.reload || (artoo.log.verbose(\"artoo already exists within this page. No need to inject him again.\"), artoo.loadSettings(t), artoo.hooks.trigger(\"exec\"), e = !1)), e) {
-        var o = document.getElementsByTagName(\"body\")[0];
-        o || (o = document.createElement(\"body\"), document.firstChild.appendChild(o));
-        var i = document.createElement(\"script\");
-        console.log(\"artoo.js is loading...\"), i.src = \"//medialab.github.io/artoo/public/dist/artoo-latest.min.js\", i.type = \"text/javascript\", i.id = \"artoo_injected_script\", i.setAttribute(\"settings\", JSON.stringify(t)), o.appendChild(i)
-    }
-}).call(this);")
 
 (defmacro jfx-run
   "Invokes the provided body in the context of the JavaFX application thread."
@@ -58,16 +46,6 @@
                  (async/close! product-channel))))
     product-channel))
 
-(defn load-artoo [web-engine-map]
-  "Injects the Artoo.js scraper into the provided WebEngine instance."
-  (let [web-engine (:web-engine web-engine-map)]
-      (jfx-run
-       (try
-         (.executeScript web-engine LOAD_ARTOO)
-         (timbre/info "Loaded artoo.js! :-D")
-         (catch Exception exception
-           (timbre/warn "Failed to load artoo.js: " exception))))))
-
 (defn load-url
   "Loads the provided URL in the WebEngine instance, returns a channel
   that may be monitored to track to status of the loading. The channel
@@ -81,10 +59,10 @@
        (async/go (loop []
                    (when-let [state (async/<! (:load-channel web-engine-map))]
                      (timbre/debug "Loading: " (:new state))
-                     (if (= (:new state) Worker$State/SUCCEEDED)
-                       (load-artoo web-engine-map))
                      (async/>! state-channel state)
-                     (recur)))
+                     (if (= (:new state) Worker$State/SUCCEEDED)
+                       (async/close! state-channel)
+                       (recur))))
                  (async/close! state-channel))))
     state-channel))
 
@@ -132,3 +110,8 @@
          (async/go (async/>! result-channel exception)
                    (async/close! result-channel)))))
     result-channel))
+
+(defn get-html [web-engine-map]
+  "Fetches the HTML content of the current view. This function returns
+  a channel that will be populated with the HTML content."
+  (run-js web-engine-map "document.documentElement.outerHTML"))
