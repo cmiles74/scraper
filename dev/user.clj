@@ -6,7 +6,7 @@
             [cheshire.core :as json]
             [com.nervestaple.scraper.sync :as scraper]
             [com.nervestaple.scraper.artoo :as r2]
-            [com.nervestaple.scraper.gui :as ui]))
+            [com.nervestaple.scraper.gui :as gui]))
 
 (def LOG-FILE "scraper.log")
 

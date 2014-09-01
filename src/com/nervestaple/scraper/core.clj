@@ -26,32 +26,69 @@
 ;; ensure that the JavaFX environment has been initialized
 (defonce jfx-init-complete (jfx-init))
 
+(defn add-worker-listener
+  "Listens to the load worker of the provided web engine instance and
+  calls the appropriate handler function from the provided map as the
+  content is loaded. The keys in the handler-fn-map should
+  be
+
+    :scheduled, :succeeded, :cancelled
+
+  Each handler function should accept the following arguments:
+
+    web-engine, map of worker states"
+  [web-engine handler-fn-map]
+  (.addListener (.stateProperty (.getLoadWorker web-engine))
+                (proxy [ChangeListener] []
+                  (changed [value previous new]
+
+                    (let [state-map {:value value
+                                     :previous previous
+                                     :new new}]
+
+                      (cond
+                       (= new Worker$State/SCHEDULED)
+                       (if (:scheduled handler-fn-map)
+                         ((:scheduled handler-fn-map) web-engine state-map))
+
+                       (= new Worker$State/SUCCEEDED)
+                       (if (:succeeded handler-fn-map)
+                         ((:succeeded handler-fn-map) web-engine state-map))
+
+                       (= new Worker$State/CANCELLED)
+                       (if (:cancelled handler-fn-map)
+                         ((:cancelled handler-fn-map) web-engine state-map))))))))
+
 (defn get-web-engine
   "Returns a channel that will contain a new WebEngine instance after
   initialization."
   []
-  (let [product-channel (async/chan)]
+  (let [result-channel (async/chan)]
+
+    ;; setup our web engine instance
     (jfx-run
      (let [web-engine (javafx.scene.web.WebEngine.)
-           load-status (async/chan (async/buffer 25))]
-       (.addListener (.stateProperty (.getLoadWorker web-engine))
-                     (proxy [ChangeListener] []
-                       (changed [value previous new]
-                         (async/go (async/>! load-status
-                                             {:value value
-                                              :previous previous
-                                              :new new})))))
-       (async/go (async/>! product-channel
+           load-status (async/chan (async/buffer 25))
+           handler-fn (fn [web-engine state-map]
+                        (async/go (async/>! load-status state-map)))]
+
+       ;; pass worker state changes into our channel
+       (add-worker-listener web-engine {:scheduled handler-fn
+                                        :succeeded handler-fn
+                                        :cancelled handler-fn})
+
+       ;; place our web engine and load status channel in our result channel
+       (async/go (async/>! result-channel
                            {:web-engine web-engine :load-channel load-status})
-                 (async/close! product-channel))))
-    product-channel))
+                 (async/close! result-channel))))
+    result-channel))
 
 (defn load-url
   "Loads the provided URL in the WebEngine instance, returns a channel
   that may be monitored to track to status of the loading. The channel
   will be populated with JavaFX Worker$State instances."
   [web-engine-map url]
-  (let [state-channel (async/chan (async/buffer 25))]
+  (let [result-channel (async/chan (async/buffer 25))]
     (jfx-run
      (timbre/info "Loading " url)
      (let [web-engine (:web-engine web-engine-map)]
@@ -59,12 +96,19 @@
        (async/go (loop []
                    (when-let [state (async/<! (:load-channel web-engine-map))]
                      (timbre/debug "Loading: " (:new state))
-                     (async/>! state-channel state)
-                     (if (= (:new state) Worker$State/SUCCEEDED)
-                       (async/close! state-channel)
-                       (recur))))
-                 (async/close! state-channel))))
-    state-channel))
+                     (async/>! result-channel state)
+                     (cond
+                      (= (:new state) Worker$State/SUCCEEDED)
+                      (async/close! result-channel)
+
+                      (= (:new state) Worker$State/CANCELLED)
+                      (do (async/close! result-channel)
+                          (let [exception (.getException (.getLoadWorker web-engine))]
+                            (if exception (async/>! result-channel exception))))
+
+                      :else (recur))))
+                 (async/close! result-channel))))
+    result-channel))
 
 (defn run-js
   "Executes the provided JavaScript code in the context of the

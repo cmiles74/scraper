@@ -38,16 +38,14 @@
                 scene (Scene. borderpane)
                 web-view (WebView.)
                 web-engine (.getEngine web-view)
-                load-status (async/chan)]
+                load-status (async/chan)
+                handler-fn (fn [web-engine state-map]
+                             (async/go (async/>! load-status state-map)))]
 
-            ;; listen for load status in the web engine
-            (.addListener (.stateProperty (.getLoadWorker web-engine))
-                          (proxy [ChangeListener] []
-                            (changed [value previous new]
-                              (async/go (async/>! load-status
-                                                  {:value value
-                                                   :previous previous
-                                                   :new new})))))
+            ;; pass worker state changes into our channel
+            (core/add-worker-listener web-engine {:scheduled handler-fn
+                                                  :succeeded handler-fn
+                                                  :cancelled handler-fn})
 
             ;; setup our javafx panel
             (.setCenter borderpane web-view)
