@@ -35,14 +35,16 @@
     (SwingUtilities/invokeLater
      (fn []
        (core/jfx-run
-        (fn []
-          (let [borderpane (BorderPane.)
-                scene (Scene. borderpane)
-                web-view (WebView.)
-                web-engine (.getEngine web-view)
-                load-status (async/chan)
-                handler-fn (fn [web-engine state-map]
-                             (async/go (async/>! load-status state-map)))]
+        (timbre/debug "Calling out to JavaFX...")
+        (let [borderpane (BorderPane.)
+              scene (Scene. borderpane)
+              web-view (WebView.)
+              web-engine (.getEngine web-view)
+              load-status (async/chan)
+              handler-fn (fn [web-engine state-map]
+                           (async/go (async/>! load-status state-map)))]
+          (timbre/debug "Retrieved WebView " web-view)
+          (try
 
             ;; pass worker state changes into our channel
             (core/add-worker-listener web-engine {:scheduled handler-fn
@@ -53,12 +55,15 @@
             (.setCenter borderpane web-view)
             (.setScene jfxpanel scene)
 
-
             (async/go
               (async/>! value-channel {:frame jframe :web-view web-view
                                        :web-engine {:web-engine web-engine
                                                     :load-channel load-status}})
-              (async/close! value-channel)))))
+              (async/close! value-channel))
+            (catch Exception exception
+              (async/go
+                (async/>! value-channel exception)
+                (async/close! value-channel))))))
        (.setVisible jframe true)))
     value-channel))
 
