@@ -1,4 +1,4 @@
-(defproject scraper "0.1.0-SNAPSHOT"
+(defproject com.nervestaple/scraper "0.1.0-SNAPSHOT"
   :description "Simple WebEngine Based Scraper"
   :url "http://github.com/cmiles74/scraper"
   :license {:name "Eclipse Public License"

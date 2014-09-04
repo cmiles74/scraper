@@ -1,6 +1,7 @@
 (ns com.nervestaple.scraper.sync
-  (:require [com.nervestaple.scraper.core :as scraper]
+  (:require [com.nervestaple.scraper.core :as core]
             [com.nervestaple.scraper.artoo :as artoo]
+            [com.nervestaple.scraper.gui :as gui]
             [taoensso.timbre :as timbre
              :only (trace debug info warn error fatal spy)]
             [clojure.core.async :as async])
@@ -10,7 +11,7 @@
   "Uses the provided web engine map to load the provided URL. Blocks
   until the URL has been successfully loaded or the web engine
   instance provides an error condition."
-  (let [result-channel (scraper/load-url web-engine-map url)]
+  (let [result-channel (core/load-url web-engine-map url)]
     (loop [state (async/<!! result-channel)]
       (timbre/info "STATE: " state)
       (if (not (= (:new state) Worker$State/SUCCEEDED))
@@ -28,16 +29,22 @@
       item)))
 
 (defn get-web-engine []
-  (fetch-from-channel (scraper/get-web-engine)))
+  (fetch-from-channel (core/get-web-engine)))
 
 (defn run-js [web-engine-map js]
-  (fetch-from-channel (scraper/run-js web-engine-map js)))
+  (fetch-from-channel (core/run-js web-engine-map js)))
 
 (defn run-js-json [web-engine-map js]
-  (fetch-from-channel (scraper/run-js-json web-engine-map js)))
+  (fetch-from-channel (core/run-js-json web-engine-map js)))
 
 (defn get-html [web-engine-map]
-  (fetch-from-channel (scraper/get-html web-engine-map)))
+  (fetch-from-channel (core/get-html web-engine-map)))
 
 (defn load-artoo [weeb-engine-map]
   (fetch-from-channel (artoo/load-artoo weeb-engine-map)))
+
+(defn get-web-view []
+  (fetch-from-channel (gui/get-web-view)))
+
+(defn web-view-load-firebug [web-view-map]
+  (fetch-from-channel (gui/load-firebug web-view-map)))

@@ -18,8 +18,10 @@
 (def LOAD-FIREBUG-LITE
   "if (!document.getElementById('FirebugLite')){E = document['createElement' + 'NS'] && document.documentElement.namespaceURI;E = E ? document['createElement' + 'NS'](E, 'script') : document['createElement']('script');E['setAttribute']('id', 'FirebugLite');E['setAttribute']('src', 'https://getfirebug.com/' + 'firebug-lite.js' + '#startOpened');E['setAttribute']('FirebugLite', '4');(document['getElementsByTagName']('head')[0] || document['getElementsByTagName']('body')[0]).appendChild(E);E = new Image;E['setAttribute']('src', 'https://getfirebug.com/' + '#startOpened');}")
 
-(defn web-view-frame
-  [url]
+(defn get-web-view
+  "Returns a channel that will contain a new WebView instance after
+  initialization."
+  []
   (let [value-channel (async/chan)
         jframe (JFrame. "WebView")
         jfxpanel (JFXPanel.)]
@@ -50,7 +52,6 @@
             ;; setup our javafx panel
             (.setCenter borderpane web-view)
             (.setScene jfxpanel scene)
-            (.load web-engine url)
 
 
             (async/go
@@ -62,6 +63,7 @@
     value-channel))
 
 (defn load-firebug
+  "Loads Firebug Lite into the provided WebView map."
   [web-view-map]
   (let [web-engine-map (:web-engine web-view-map)]
     (core/run-js web-engine-map LOAD-FIREBUG-LITE)))
