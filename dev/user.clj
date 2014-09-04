@@ -4,9 +4,7 @@
                :only (trace debug info warn error fatal spy)]
             [clojure.core.async :as async]
             [cheshire.core :as json]
-            [com.nervestaple.scraper.sync :as scraper]
-            [com.nervestaple.scraper.artoo :as r2]
-            [com.nervestaple.scraper.gui :as gui]))
+            [com.nervestaple.scraper.sync :as scraper]))
 
 (def LOG-FILE "scraper.log")
 
@@ -14,14 +12,21 @@
   "Routes all log messages to the provided file."
   [filename]
   (let [stdoutfn (get-in @timbre/config [:appenders :standard-out :fn])
-        fappender {:doc "Prints to file" :min-level :debug :enabled? true
+        stdout-app {:doc "Prints to standard out" :min-level :info :enabled? true
+                   :async? false
+                   :ns-whitelist ["com.nervestaple"]
+                   :max-message-per-msecs nil
+                   :fn (fn [logdata]
+                         (stdoutfn logdata))}
+        file-app {:doc "Prints to file" :min-level :debug :enabled? true
                    :async? false
                    :ns-whitelist ["com.nervestaple"]
                    :max-message-per-msecs nil
                    :fn (fn [logdata]
                          (spit filename (with-out-str (stdoutfn logdata))
                                :append true))}]
-    (timbre/set-config! [:appenders :file-appender] fappender)))
+    (timbre/set-config! [:appenders :file-appender] file-app)
+    (timbre/set-config! [:appenders :standard-out] stdout-app)))
 
 (defn stop-file-logging
   "Stops the file logging mechanism."
@@ -30,3 +35,5 @@
 
 (defn setup []
   (start-file-logging LOG-FILE))
+
+(defonce setup-init (setup))

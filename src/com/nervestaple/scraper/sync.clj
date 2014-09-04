@@ -7,17 +7,6 @@
             [clojure.core.async :as async])
   (:import [javafx.concurrent Worker$State]))
 
-(defn load-url [web-engine-map url]
-  "Uses the provided web engine map to load the provided URL. Blocks
-  until the URL has been successfully loaded or the web engine
-  instance provides an error condition."
-  (let [result-channel (core/load-url web-engine-map url)]
-    (loop [state (async/<!! result-channel)]
-      (timbre/info "STATE: " state)
-      (if (not (= (:new state) Worker$State/SUCCEEDED))
-        (recur (async/<!! result-channel))
-        state))))
-
 (defn fetch-from-channel
   "Blocks until a message arrives in the channel, then returns that
   message. If that message is an instance of Exception, it will be
@@ -43,8 +32,25 @@
 (defn load-artoo [weeb-engine-map]
   (fetch-from-channel (artoo/load-artoo weeb-engine-map)))
 
+(defn scrape [web-engine-map selector artoo-map]
+  (fetch-from-channel (artoo/scrape web-engine-map selector artoo-map)))
+
 (defn get-web-view []
   (fetch-from-channel (gui/get-web-view)))
 
 (defn web-view-load-firebug [web-view-map]
   (fetch-from-channel (gui/load-firebug web-view-map)))
+
+(defn load-url [web-engine-map url]
+  "Uses the provided web engine map to load the provided URL. Blocks
+  until the URL has been successfully loaded or the web engine
+  instance provides an error condition. If the web engine loads
+  successfully, injects the artoo.js scraper library into the web
+  engine instance."
+  (let [result-channel (core/load-url web-engine-map url)]
+    (loop [state (async/<!! result-channel)]
+      (timbre/debug "STATE: " state)
+      (if (not (= (:new state) Worker$State/SUCCEEDED))
+        (recur (async/<!! result-channel))
+        (do (load-artoo web-engine-map)
+            state)))))

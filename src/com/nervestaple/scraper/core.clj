@@ -13,7 +13,7 @@
 (defmacro jfx-run
   "Invokes the provided body in the context of the JavaFX application thread."
   [& body]
-  `(Platform/runLater (fn [] ~body)))
+  `(Platform/runLater (fn [] ~@body)))
 
 (defn jfx-init
   "Initializes the JavaFX environment."
@@ -90,7 +90,7 @@
   [web-engine-map url]
   (let [result-channel (async/chan (async/buffer 25))]
     (jfx-run
-     (timbre/info "Loading " url)
+     (timbre/debug "Loading " url)
      (let [web-engine (:web-engine web-engine-map)]
        (.load web-engine url)
        (async/go (loop []

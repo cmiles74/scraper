@@ -27,16 +27,18 @@ scrape out some content.
 
 ````
 user> (def we (scraper/get-web-engine))
+
 #'user/we
+
 user> (scraper/load-url we "http://news.ycombinator.com")
+
 {:value #<ReadOnlyPropertyImpl ReadOnlyObjectProperty [bean:
 javafx.scene.web.WebEngine$LoadWorker@191f0cc2, name: state, value: SUCCEEDED]>,
 previous #<State RUNNING>, :new #<State SUCCEEDED>}
-user> (scraper/load-artoo we)
-"undefined"
-user> (scraper/run-js-json we "artoo.scrape(
-'td.title:has(a):not(:last)', {title: {sel: 'a'},
-url: {sel: 'a', attr: 'href'}})")
+
+user> (scraper/scrape we "td.title:has(a):not(:last)",
+{:title {:sel "a"} :url {:sel "a" :attr "href"}})
+
 ({"title" "Standard Markdown", "url" "http://standardmarkdown.com/"} {"title"
 "Perdue Says Its Hatching Chicks Are Off Antibiotics", "url"
 "http://www.npr.org/blogs/thesalt/2014/09/03/345315380/perdue-says-its-
@@ -56,8 +58,11 @@ instead. This will bring up a new window displaying the WebView.
 
 ````
 user> (def wv (scraper/get-web-view))
+
 #'user/wv
+
 user> (def w (:web-engine wv))
+
 #'user/we
 ````
 

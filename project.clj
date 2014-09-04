@@ -6,4 +6,6 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/core.async "0.1.338.0-5c5012-alpha"]
                  [com.taoensso/timbre "2.6.1"]
-                 [cheshire "5.3.1"]])
+                 [cheshire "5.3.1"]]
+  :profiles {:dev {:source-paths ["dev"]}}
+  :repl-options {:init-ns user})

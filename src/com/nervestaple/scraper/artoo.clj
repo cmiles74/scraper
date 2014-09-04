@@ -1,5 +1,6 @@
 (ns com.nervestaple.scraper.artoo
-  (:require [com.nervestaple.scraper.core :as scraper]
+  (:require [com.nervestaple.scraper.core :as core]
+            [cheshire.core :as json]
             [taoensso.timbre :as timbre
                :only (trace debug info warn error fatal spy)]
             [clojure.core.async :as async]))
@@ -19,4 +20,20 @@
 (defn load-artoo [web-engine-map]
   "Injects the Artoo.js scraper into the provided WebEngine instance."
   (let [web-engine (:web-engine web-engine-map)]
-    (scraper/run-js web-engine-map LOAD_ARTOO)))
+    (core/run-js web-engine-map LOAD_ARTOO)))
+
+(defn scrape [web-engine-map selector artoo-map]
+  "Scrapes data from the currently loaded page in the provided web
+  engine map. The selector represents the 'root iterator' used by
+  artoo to select data, i.e.:
+
+    td.title:has(a):not(:last)
+
+  The artoo-map should be a data structure that will be converted to
+  JSON and represents the data model of scraped content. For instance:
+
+    {:title {:sel \"a\"}
+     :url {:sel \"a\" :attr \"href\"}}"
+  (core/run-js-json web-engine-map
+                    (str "artoo.scrape(\"" selector "\","
+                         (json/generate-string artoo-map)")")))
