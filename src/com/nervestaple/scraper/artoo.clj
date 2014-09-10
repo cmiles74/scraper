@@ -17,13 +17,14 @@
     }
 }).call(this);")
 
-(defn load-artoo [web-engine-map]
+(defn load-artoo
   "Injects the Artoo.js scraper into the provided WebEngine instance."
+  [web-engine-map]
   (let [web-engine (:web-engine web-engine-map)]
     (core/run-js web-engine-map LOAD_ARTOO)))
 
-(defn scrape [web-engine-map selector artoo-map]
-  "Scrapes data from the currently loaded page in the provided web
+(defn scrape
+    "Scrapes data from the currently loaded page in the provided web
   engine map. The selector represents the 'root iterator' used by
   artoo to select data, i.e.:
 
@@ -34,6 +35,7 @@
 
     {:title {:sel \"a\"}
      :url {:sel \"a\" :attr \"href\"}}"
+    [web-engine-map selector artoo-model]
   (core/run-js-json web-engine-map
                     (str "artoo.scrape(\"" selector "\","
-                         (json/generate-string artoo-map)")")))
+                         (json/generate-string artoo-model)")")))

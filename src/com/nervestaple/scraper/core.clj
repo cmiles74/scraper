@@ -26,19 +26,24 @@
 ;; ensure that the JavaFX environment has been initialized
 (defonce jfx-init-complete (jfx-init))
 
-(defn add-worker-listener
-  "Listens to the load worker of the provided web engine instance and
-  calls the appropriate handler function from the provided map as the
-  content is loaded. The keys in the handler-fn-map should
-  be
+(defn add-change-listener
+  "Listens to the provided ObservableValue and invokes the appropriate
+  handler function from the handler-fn-map as the state of the
+  ObservableValue changes. Behind the scenes a ChangeListener is
+  instantiated and that object invokes the handler functions. The
+  handler-fn-map should contain the following keys:
 
     :scheduled, :succeeded, :cancelled
 
-  Each handler function should accept the following arguments:
+  Each key's value should be a function that will accept one argument,
+  a map. That map will contain the following keys:
 
-    web-engine, map of worker states"
-  [web-engine handler-fn-map]
-  (.addListener (.stateProperty (.getLoadWorker web-engine))
+    :value, :previous, :new
+
+  The values for those keys will be the ObservableValue instance at
+  it's current, previous and it's new state."
+  [observable-value handler-fn-map]
+  (.addListener observable-value
                 (proxy [ChangeListener] []
                   (changed [value previous new]
 
@@ -49,15 +54,15 @@
                       (cond
                        (= new Worker$State/SCHEDULED)
                        (if (:scheduled handler-fn-map)
-                         ((:scheduled handler-fn-map) web-engine state-map))
+                         ((:scheduled handler-fn-map) state-map))
 
                        (= new Worker$State/SUCCEEDED)
                        (if (:succeeded handler-fn-map)
-                         ((:succeeded handler-fn-map) web-engine state-map))
+                         ((:succeeded handler-fn-map) state-map))
 
                        (= new Worker$State/CANCELLED)
                        (if (:cancelled handler-fn-map)
-                         ((:cancelled handler-fn-map) web-engine state-map))))))))
+                         ((:cancelled handler-fn-map) state-map))))))))
 
 (defn get-web-engine
   "Returns a channel that will contain a new WebEngine instance after
@@ -68,14 +73,13 @@
     ;; setup our web engine instance
     (jfx-run
      (let [web-engine (javafx.scene.web.WebEngine.)
-           load-status (async/chan (async/buffer 25))
-           handler-fn (fn [web-engine state-map]
-                        (async/go (async/>! load-status state-map)))]
+           load-status (async/chan (async/buffer 25))]
 
        ;; pass worker state changes into our channel
-       (add-worker-listener web-engine {:scheduled handler-fn
-                                        :succeeded handler-fn
-                                        :cancelled handler-fn})
+       (add-change-listener (.stateProperty (.getLoadWorker web-engine))
+                            {:scheduled #(async/go (async/>! load-status %))
+                             :cancelled #(async/go (async/>! load-status %))
+                             :succeeded #(async/go (async/>! load-status %))})
 
        ;; place our web engine and load status channel in our result channel
        (async/go (async/>! result-channel

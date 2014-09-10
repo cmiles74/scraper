@@ -47,9 +47,10 @@
           (try
 
             ;; pass worker state changes into our channel
-            (core/add-worker-listener web-engine {:scheduled handler-fn
-                                                  :succeeded handler-fn
-                                                  :cancelled handler-fn})
+            (core/add-change-listener (.stateProperty (.getLoadWorker web-engine))
+                                      {:scheduled #(async/go (async/>! load-status %))
+                                       :cancelled #(async/go (async/>! load-status %))
+                                       :succeeded #(async/go (async/>! load-status %))})
 
             ;; setup our javafx panel
             (.setCenter borderpane web-view)
