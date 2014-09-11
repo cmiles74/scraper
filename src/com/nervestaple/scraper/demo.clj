@@ -77,8 +77,7 @@
                        ;; get the next link and scrape it
                        (let [next-link (sync/scrape crawler ".pagnRA" {:sel "a" :attr "href"})]
                          (if (first next-link)
-                           (future
-                             (scrape-links link-channel crawler (str DOMAIN-ROOT (first next-link))))
+                           (scrape-links link-channel crawler (str DOMAIN-ROOT (first next-link)))
                            (do
                              (timbre/debug "End of crawl, no more results")
                              (async/close! link-channel)))))))
