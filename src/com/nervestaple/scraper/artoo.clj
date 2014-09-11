@@ -21,7 +21,10 @@
   "Injects the Artoo.js scraper into the provided WebEngine instance."
   [web-engine-map]
   (let [web-engine (:web-engine web-engine-map)]
-    (core/run-js web-engine-map LOAD_ARTOO)))
+    (core/run-js web-engine-map LOAD_ARTOO)
+    (while (not (async/<!! (core/run-js web-engine-map "typeof artoo != \"undefined\"")))
+           (timbre/debug "Waiting for artoo.js to load...")
+           (Thread/sleep 50))))
 
 (defn scrape
     "Scrapes data from the currently loaded page in the provided web

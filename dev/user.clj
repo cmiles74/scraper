@@ -4,6 +4,7 @@
                :only (trace debug info warn error fatal spy)]
             [clojure.core.async :as async]
             [cheshire.core :as json]
+            [com.nervestaple.scraper.core :as core]
             [com.nervestaple.scraper.sync :as scraper]
             [com.nervestaple.scraper.demo :as demo]))
 
