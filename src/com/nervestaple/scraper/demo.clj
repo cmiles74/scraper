@@ -13,39 +13,63 @@
 (def SEED-URL (str DOMAIN-ROOT "/s/ref=sr_pg_1?rh=i%3Aaps%2Ck%3Ausb+drive+flash+drive&keywords=usb+drive+flash+drive"))
 
 (defn scrape-links
+  [crawler url]
+  (sync/load-url crawler url)
+  (sync/load-artoo crawler)
+  (let [result-channel (async/chan)
+        items (sync/scrape crawler ".results > div"
+                           {:title {:sel "h3 a"}
+                            :link {:sel "a" :attr "href"}
+                            :rating {:sel ".asinReviewsSummary > a:eq(1)"
+                                     :attr "alt"}
+                            :by {:sel "h3 span:eq(1)"}
+                            :price {:sel "ul a span.price"}
+                            :dept {:sel "li.seeAll span"}})]
+    (async/go (async/>! result-channel items))
+    result-channel))
+
+(defn scrape-next-page
+  [crawler]
+  (let [result-channel (async/chan)]
+    (artoo/wait-for crawler
+                    "artoo.$('.pagnRA a').size() > 0"
+                    (let [page-channel (artoo/scrape crawler ".pagnRA" {:sel "a" :attr "href"})]
+                      (async/go
+                        (async/>! result-channel (first (async/<! page-channel))))))
+    result-channel))
+
+(defn scrape-amazon
   ([]
      (let [link-channel (async/chan)
            crawler (sync/get-web-engine)]
-       (scrape-links link-channel crawler SEED-URL)))
+       (scrape-amazon link-channel crawler SEED-URL)))
 
   ([link-channel crawler url]
-     (let [load-result (sync/load-url crawler url)]
-       (if (= Worker$State/SUCCEEDED (:new load-result))
-         (let [window (sync/run-js crawler "window")]
+     (let [scrape-channel (scrape-links crawler url)]
+       (timbre/info "Scraping" url)
+       (async/go
 
-           ;; wait for the results table to load, then invoke our ready function
-           (artoo/wait-for crawler
-                     "artoo.$('.results > div').size() > 0"
-                     (fn []
+         (let [scrape-results (async/<! scrape-channel)]
+           (timbre/info "Scraped " (count scrape-results) "links")
+           (async/>! link-channel scrape-results))
 
-                       ;; scrape the items and add them to our channel of links
-                       (let [items (sync/scrape crawler ".results > div"
-                                                {:title {:sel "h3 a"}
-                                                 :link {:sel "a" :attr "href"}
-                                                 :rating {:sel ".asinReviewsSummary > a:eq(1)"
-                                                          :attr "alt"}
-                                                 :by {:sel "h3 span:eq(1)"}
-                                                 :price {:sel "ul a span.price"}
-                                                 :dept {:sel "li.seeAll span"}})]
-                         (async/go (async/>! link-channel items)))
-
-                       ;; get the next link and scrape it
-                       (let [next-link (sync/scrape crawler ".pagnRA" {:sel "a" :attr "href"})]
-                         (if (first next-link)
-                           ;(scrape-links link-channel crawler (str DOMAIN-ROOT (first next-link)))
-                           (do
-                             (timbre/debug "End of crawl, no more results")
-                             (async/close! link-channel)))))))
-         (timbre/warn "Problem loading " url ": " load-result)))
-
+         (let [page-link (async/<! (scrape-next-page crawler))]
+           (timbre/info "Scraped link to next page" page-link)
+           (if (not (nil? page-link))
+             (scrape-amazon link-channel crawler (str DOMAIN-ROOT page-link))
+             (async/close! link-channel)))))
      link-channel))
+
+(defn collect-amazon-data
+  []
+  (let [data (atom [])
+        result-channel (scrape-amazon)]
+    (async/go-loop [data-page (async/<! result-channel)]
+      (if (seq data-page)
+        (do
+          (dosync
+           (timbre/info "Collecting" (count data-page) "links")
+           (swap! data into data-page))
+          (timbre/info "Collected" (count @data) "links")
+          (recur (async/<! result-channel)))))
+    data))
