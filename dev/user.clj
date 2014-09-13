@@ -5,6 +5,7 @@
             [clojure.core.async :as async]
             [cheshire.core :as json]
             [com.nervestaple.scraper.core :as core]
+            [com.nervestaple.scraper.artoo :as artoo]
             [com.nervestaple.scraper.sync :as scraper]
             [com.nervestaple.scraper.demo :as demo]))
 

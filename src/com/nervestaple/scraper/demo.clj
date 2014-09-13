@@ -12,38 +12,6 @@
 (def DOMAIN-ROOT "http://www.amazon.com")
 (def SEED-URL (str DOMAIN-ROOT "/s/ref=sr_pg_1?rh=i%3Aaps%2Ck%3Ausb+drive+flash+drive&keywords=usb+drive+flash+drive"))
 
-;; javascript function to wait for a condition, cribbed from the PhantomJS project
-(def JS-WAIT-FOR-FN
-  "function waitFor(testFx, onReady, timeOutMillis) {
-   var maxtimeOutMillis = timeOutMillis ? timeOutMillis : 3000, //< Default Max Timout is 3s
-        start = new Date().getTime(),
-        condition = false,
-        interval = setInterval(function() {
-            if ( (new Date().getTime() - start < maxtimeOutMillis) && !condition ) {
-                // If not time-out yet and condition not yet fulfilled
-                condition = (typeof(testFx) === \"string\" ? eval(testFx) : testFx()); //< defensive code
-            } else {
-                if(!condition) {
-                    // If condition still not fulfilled (timeout but condition is 'false')
-                    console.log(\"'waitFor()' timeout\");
-                    clearInterval(interval);
-                } else {
-                    // Condition fulfilled (timeout and/or condition is 'true')
-                    console.log(\"'waitFor()' finished in \" + (new Date().getTime() - start) + \"ms.\");
-                    typeof(onReady) === \"string\" ? eval(onReady) : onReady();
-                    //< Do what it's supposed to do once the condition is fulfilled
-                    clearInterval(interval); //< Stop this interval
-                }
-            }
-        }, 250); //< repeat check every 250ms
-   };")
-
-(defn wait-for
-  [crawler js-test-fn ready-fn]
-  (let [window (sync/run-js crawler "window")]
-    (.setMember window "readyFn" ready-fn)
-    (sync/run-js crawler (str "waitFor(" js-test-fn ",function(){readyFn.run();});"))))
-
 (defn scrape-links
   ([]
      (let [link-channel (async/chan)
@@ -55,12 +23,9 @@
        (if (= Worker$State/SUCCEEDED (:new load-result))
          (let [window (sync/run-js crawler "window")]
 
-           ;; inject our waitFor function
-           (sync/run-js crawler JS-WAIT-FOR-FN)
-
            ;; wait for the results table to load, then invoke our ready function
-           (wait-for crawler
-                     "function(){return artoo.$('.results > div').size() > 0;}"
+           (artoo/wait-for crawler
+                     "artoo.$('.results > div').size() > 0"
                      (fn []
 
                        ;; scrape the items and add them to our channel of links
@@ -77,7 +42,7 @@
                        ;; get the next link and scrape it
                        (let [next-link (sync/scrape crawler ".pagnRA" {:sel "a" :attr "href"})]
                          (if (first next-link)
-                           (scrape-links link-channel crawler (str DOMAIN-ROOT (first next-link)))
+                           ;(scrape-links link-channel crawler (str DOMAIN-ROOT (first next-link)))
                            (do
                              (timbre/debug "End of crawl, no more results")
                              (async/close! link-channel)))))))

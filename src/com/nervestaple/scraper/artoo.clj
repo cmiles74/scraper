@@ -17,14 +17,67 @@
     }
 }).call(this);")
 
+;; Javascript function to wait for a condition, cribbed from the PhantomJS project
+(def JS-WAIT-FOR-FN
+  "function waitFor(testFx, onReady, timeOutMillis) {
+   var maxtimeOutMillis = timeOutMillis ? timeOutMillis : 3000, //< Default Max Timout is 3s
+        start = new Date().getTime(),
+        condition = false,
+        interval = setInterval(function() {
+            if ( (new Date().getTime() - start < maxtimeOutMillis) && !condition ) {
+                // If not time-out yet and condition not yet fulfilled
+                condition = (typeof(testFx) === \"string\" ? eval(testFx) : testFx()); //< defensive code
+            } else {
+                if(!condition) {
+                    // If condition still not fulfilled (timeout but condition is 'false')
+                    console.log(\"'waitFor()' timeout\");
+                    clearInterval(interval);
+                } else {
+                    // Condition fulfilled (timeout and/or condition is 'true')
+                    console.log(\"'waitFor()' finished in \" + (new Date().getTime() - start) + \"ms.\");
+                    typeof(onReady) === \"string\" ? eval(onReady) : onReady();
+                    //< Do what it's supposed to do once the condition is fulfilled
+                    clearInterval(interval); //< Stop this interval
+                }
+            }
+        }, 250); //< repeat check every 250ms
+   };")
+
+
+(defn wait-for
+  "Waits for the provided js-test-fn to evaluate true and then invokes
+  the ready-fn with no parameters."
+  [crawler js-test-fn ready-fn]
+  (let [window (async/<!! (core/run-js crawler "window"))
+        ready-fn-name (str "readyFn" (.getTime (java.util.Date.)))]
+    (.setMember window ready-fn-name ready-fn)
+    (core/run-js crawler
+                 (str "waitFor(function(){return " js-test-fn ";},"
+                      "function(){" ready-fn-name ".run();});"))))
+
 (defn load-artoo
   "Injects the Artoo.js scraper into the provided WebEngine instance."
   [web-engine-map]
-  (let [web-engine (:web-engine web-engine-map)]
-    (core/run-js web-engine-map LOAD_ARTOO)
-    (while (not (async/<!! (core/run-js web-engine-map "typeof artoo != \"undefined\"")))
-           (timbre/debug "Waiting for artoo.js to load...")
-           (Thread/sleep 50))))
+  (let [web-engine (:web-engine web-engine-map)
+        result-channel (async/chan)]
+
+    (async/go
+
+      ;; load artoo.js
+      (let [channel (core/run-js web-engine-map LOAD_ARTOO)]
+        (async/<! channel))
+
+      ;; load our wait function
+      (let [channel (core/run-js web-engine-map JS-WAIT-FOR-FN)]
+        (async/<! channel))
+
+      ;; wait for artoo to startup
+      (wait-for web-engine-map
+                "typeof artoo != \"undefined\""
+                (fn []
+                  (async/go (async/>! result-channel {:state :ready})
+                            (async/close! result-channel)))))
+    result-channel))
 
 (defn scrape
     "Scrapes data from the currently loaded page in the provided web

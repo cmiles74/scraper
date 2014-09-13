@@ -30,7 +30,7 @@
   (fetch-from-channel (core/get-html web-engine-map)))
 
 (defn load-artoo [weeb-engine-map]
-  (artoo/load-artoo weeb-engine-map))
+  (fetch-from-channel (artoo/load-artoo weeb-engine-map)))
 
 (defn scrape [web-engine-map selector artoo-map]
   (fetch-from-channel (artoo/scrape web-engine-map selector artoo-map)))
