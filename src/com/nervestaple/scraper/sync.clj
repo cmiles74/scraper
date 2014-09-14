@@ -51,6 +51,4 @@
     (loop [state (async/<!! result-channel)]
       (timbre/debug "STATE: " state)
       (if (not (= (:new state) Worker$State/SUCCEEDED))
-        (recur (async/<!! result-channel))
-        (do (load-artoo web-engine-map)
-            state)))))
+        (recur (async/<!! result-channel))))))
