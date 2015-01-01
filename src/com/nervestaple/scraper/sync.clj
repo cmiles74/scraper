@@ -29,8 +29,8 @@
 (defn get-html [web-engine-map]
   (fetch-from-channel (core/get-html web-engine-map)))
 
-(defn load-artoo [weeb-engine-map]
-  (fetch-from-channel (artoo/load-artoo weeb-engine-map)))
+(defn load-artoo [web-engine-map]
+  (fetch-from-channel (artoo/load-artoo web-engine-map)))
 
 (defn scrape [web-engine-map selector artoo-map]
   (fetch-from-channel (artoo/scrape web-engine-map selector artoo-map)))
@@ -51,4 +51,5 @@
     (loop [state (async/<!! result-channel)]
       (timbre/debug "STATE: " state)
       (if (not (= (:new state) Worker$State/SUCCEEDED))
-        (recur (async/<!! result-channel))))))
+        (recur (async/<!! result-channel))
+        {:state :ready}))))

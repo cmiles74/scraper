@@ -20,7 +20,7 @@ Probably more fun is to check out the project and then interact with
 it directly via the REPL.
 
     $ cd scraper
-	$ lein repl
+    $ lein repl
 
 From there it's easy to get a handle on a WebEngine instance and
 scrape out some content.
@@ -31,12 +31,12 @@ user> (def we (scraper/get-web-engine))
 #'user/we
 
 user> (scraper/load-url we "http://news.ycombinator.com")
+{:state :read}
 
-{:value #<ReadOnlyPropertyImpl ReadOnlyObjectProperty [bean:
-javafx.scene.web.WebEngine$LoadWorker@191f0cc2, name: state, value: SUCCEEDED]>,
-previous #<State RUNNING>, :new #<State SUCCEEDED>}
+user> (scraper/load-artoo we)
+{:state :read}
 
-user> (scraper/scrape we "td.title:has(a):not(:last)",
+user> (scraper/scrape we "td.title:has(a):not(:last)"
 {:title {:sel "a"} :url {:sel "a" :attr "href"}})
 
 ({"title" "Standard Markdown", "url" "http://standardmarkdown.com/"} {"title"
