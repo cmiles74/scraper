@@ -31,10 +31,10 @@ user> (def we (scraper/get-web-engine))
 #'user/we
 
 user> (scraper/load-url we "http://news.ycombinator.com")
-{:state :read}
+{:state :ready}
 
 user> (scraper/load-artoo we)
-{:state :read}
+{:state :ready}
 
 user> (scraper/scrape we "td.title:has(a):not(:last)"
 {:title {:sel "a"} :url {:sel "a" :attr "href"}})
