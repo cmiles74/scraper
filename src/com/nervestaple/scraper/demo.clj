@@ -29,14 +29,12 @@
 
   ;; create our channel and scrape our data
   (let [result-channel (async/chan)
-        items (sync/scrape crawler ".results > div"
-                           {:title {:sel "h3 a"}
-                            :link {:sel "a" :attr "href"}
-                            :rating {:sel ".asinReviewsSummary > a:eq(1)"
-                                     :attr "alt"}
-                            :by {:sel "h3 span:eq(1)"}
-                            :price {:sel "ul a span.price"}
-                            :dept {:sel "li.seeAll span"}})]
+        items (sync/scrape crawler "ul.s-result-list > li"
+                           {:title {:sel "h2"}
+                            :link {:sel ".a-link-normal" :attr "href"}
+                            :rating {:sel "i.a-icon-star"}
+                            :by {:sel ".a-row > span.a-color-secondary:eq(1)"}
+                            :price {:sel ".a-row span.s-price"}})]
 
     ;; add the scraped results to our output channel
     (async/go (async/>! result-channel items))
