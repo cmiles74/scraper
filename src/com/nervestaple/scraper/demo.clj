@@ -17,6 +17,19 @@
                    "/s/ref=sr_pg_1?rh=i%3Aaps%2Ck%3Ausb+drive+flash+drive"
                    "&keywords=usb+drive+flash+drive"))
 
+(defn post-process
+  "Parses that map of scraped data, for instance tranforming String
+  values into number instances."
+  [data]
+  (map (fn [data-map]
+         (if (and (data-map "price")
+                  (= \$ (first (data-map "price"))))
+           (assoc data-map "price"
+                  (try (Double. (apply str (rest (data-map "price"))))
+                       (catch Exception exception 0)))
+           (assoc data-map "price" 0)))
+       data))
+
 (defn scrape-links
   "Loads the specified URL in the provided web-engine-map instance and
   then scrapes the result data from the loaded page. Returns a channel
@@ -37,7 +50,7 @@
                             :price {:sel ".a-row span.s-price"}})]
 
     ;; add the scraped results to our output channel
-    (async/go (async/>! result-channel items))
+    (async/go (async/>! result-channel (post-process items)))
 
     result-channel))
 
@@ -102,8 +115,8 @@
      link-channel))
 
 (defn collect-amazon-data
-  "Scrapes Amazon.com for search result data. Returns an atom that
-  will accumulate the search results."
+  "Scrapes Amazon.com for search result data. Returns a sequence of
+  items sorted by their price."
   []
 
   ;; create our accumulator atom and start scraping
@@ -120,3 +133,9 @@
         (recur (async/<! result-channel))))
 
     data))
+
+(defn sort-by-price
+  "Sorts the atom of Amazon data by price, removing any items with a
+  price of 0.00."
+  [data]
+  (filter #(< 0 (% "price")) (sort-by #(% "price") @data)))
