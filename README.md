@@ -6,6 +6,10 @@ this project is to provide an robust and easy-to-use web scraper that
 doesn't require an external binary in order to function. With the
 introduction of Java 8, this is finally beginning to seem feasible.
 
+If you find this code useful in any way, please feel free to...
+
+<a href="https://www.buymeacoffee.com/cmiles74" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>
+
 # Usage
 
 It's still early days yet, this project hasn't reached the point where
