@@ -3,10 +3,11 @@
             [cheshire.core :as json]
             [taoensso.timbre :as timbre
                :only (trace debug info warn error fatal spy)]
-            [clojure.core.async :as async]))
+            [clojure.core.async :as async]
+            [clojure.java.io :as io]))
 
 ;; Javascript to inject the Artoo scraper into loaded pages
-(def LOAD_ARTOO "(function() {
+(def LOAD_ARTOO_OLD "(function() {
     var t = {},
         e = !0;
     if (\"object\" == typeof this.artoo && (artoo.settings.reload || (artoo.log.verbose(\"artoo already exists within this page. No need to inject him again.\"), artoo.loadSettings(t), artoo.hooks.trigger(\"exec\"), e = !1)), e) {
@@ -16,6 +17,8 @@
         console.log(\"artoo.js is loading...\"), i.src = \"//medialab.github.io/artoo/public/dist/artoo-latest.min.js\", i.type = \"text/javascript\", i.id = \"artoo_injected_script\", i.setAttribute(\"settings\", JSON.stringify(t)), o.appendChild(i)
     }
 }).call(this);")
+
+(def LOAD_ARTOO (slurp (io/resource "artoo.js")))
 
 ;; Javascript function to wait for a condition, cribbed from the PhantomJS project
 (def JS-WAIT-FOR-FN
@@ -50,10 +53,11 @@
   [crawler js-test-fn ready-fn]
   (let [window (async/<!! (core/run-js crawler "window"))
         ready-fn-name (str "readyFn" (.getTime (java.util.Date.)))]
-    (.setMember window ready-fn-name ready-fn)
-    (core/run-js crawler
-                 (str "waitFor(function(){return " js-test-fn ";},"
-                      "function(){" ready-fn-name ".run();});"))))
+    (core/jfx-run
+     (.setMember window ready-fn-name ready-fn)
+     (core/run-js crawler
+                  (str "waitFor(function(){return " js-test-fn ";},"
+                       "function(){" ready-fn-name ".run();});")))))
 
 (defn load-artoo
   "Injects the Artoo.js scraper into the provided WebEngine instance."
