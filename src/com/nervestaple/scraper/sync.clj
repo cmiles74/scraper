@@ -49,7 +49,7 @@
   engine instance."
   (let [result-channel (core/load-url web-engine-map url)]
     (loop [state (async/<!! result-channel)]
-      (timbre/debug "STATE: " state)
+      (timbre/trace "STATE: " state)
       (if (not (= (:new state) Worker$State/SUCCEEDED))
         (recur (async/<!! result-channel))
         {:state :ready}))))

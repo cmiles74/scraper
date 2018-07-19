@@ -43,7 +43,7 @@
                     (let [state-map {:value value
                                      :previous previous
                                      :new new}]
-                      (timbre/debug "ChangeListener invoked for "
+                      (timbre/trace "ChangeListener invoked for "
                                     (class observable-value) ": " state-map)
                       (handler-fn state-map))))))
 
@@ -112,9 +112,9 @@
         web-engine (:web-engine web-engine-map)]
     (jfx-run
      (try
-       (timbre/debug "Executing JS: " + js)
+       (timbre/trace "Executing JS: " + js)
        (let [result (.executeScript web-engine js)]
-         (timbre/debug "RESULT: " (pr-str result))
+         (timbre/trace "RESULT: " (pr-str result))
          (async/go
            (async/>! result-channel result)
            (async/close! result-channel)))
@@ -135,10 +135,10 @@
         web-engine (:web-engine web-engine-map)]
     (jfx-run
      (try
-       (timbre/debug "Executing JS: " + js)
+       (timbre/trace "Executing JS: " + js)
        (let [result (json/parse-string (.executeScript web-engine
                                                        (str "JSON.stringify(" js ")")))]
-         (timbre/debug "RESULT: " (pr-str result))
+         (timbre/trace "RESULT: " (pr-str result))
          (async/go
            (async/>! result-channel result)
            (async/close! result-channel)))
@@ -155,12 +155,12 @@
   [web-engine-map url]
   (let [result-channel (async/chan (async/buffer 25))]
     (jfx-run
-     (timbre/debug "Loading " url)
+     (timbre/trace "Loading " url)
      (let [web-engine (:web-engine web-engine-map)]
        (.load web-engine url)
        (async/go (loop []
                    (when-let [state (async/<! (:load-channel web-engine-map))]
-                     (timbre/debug "Loading: " (:new state))
+                     (timbre/trace "Loading: " (:new state))
                      (async/>! result-channel state)
                      (cond
                       (= (:new state) Worker$State/SUCCEEDED)
