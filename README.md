@@ -34,24 +34,22 @@ user> (def we (scraper/get-web-engine))
 
 #'user/we
 
-user> (scraper/load-url we "http://news.ycombinator.com")
+user> (scraper/load-url we "http://twitch.nervestaple.com")
 {:state :ready}
 
 user> (scraper/load-artoo we)
 {:state :ready}
 
-user> (scraper/scrape we "td.title:has(a):not(:last)"
-{:title {:sel "a"} :url {:sel "a" :attr "href"}})
+user> (scraper/scrape we "h1" {:title "text"})
 
-({"title" "Standard Markdown", "url" "http://standardmarkdown.com/"} {"title"
-"Perdue Says Its Hatching Chicks Are Off Antibiotics", "url"
-"http://www.npr.org/blogs/thesalt/2014/09/03/345315380/perdue-says-its-
-hatching-chicks-are-off-antibiotics?sc=tw"} {"title"
-"Tesla selects Nevada for battery plant", "url" "
-http://news.yahoo.com/ap-source-tesla-selects-nevada-battery-plant-200941469.html"}
-{"title" "Generative eBook Covers", "url"
-"http://www.nypl.org/blog/2014/09/03/generative-ebook-covers"} ...
+{"title" "Bishop: Makes Your Web Service Shiny"} {"title" "Why Is My Web Service
+API Crappy?"} {"title" "All Your HBase Are Belong to Clojure"}) ({"title" "Work
+In Progress"} {"title" "Linux Is All About Choices"} {"title" "Real Life Web App
+Integration Testing (IT) with Spring"} {"title" "Bishop: Makes Your Web Service
+Shiny"} {"title" "Why Is My Web Service API Crappy?"} {"title" "All Your HBase
+Are Belong to Clojure"})
 ````
+
 As you can see in the example above, the [Artoo.js][2] JavaScript
 scraping library is injected into the loaded page in order to make
 your scraping easier. You are welcome! ;-)
