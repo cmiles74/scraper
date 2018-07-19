@@ -68,14 +68,6 @@ user> (def w (:web-engine wv))
 #'user/we
 ````
 
-You can also open up a JavaScript console (via [Firebug Lite][3]) in the
-WebView, if needed.
-
-````
-user> (scraper/web-view-load-firebug wv)
-"undefined"
-````
-
 Work on the project continues, but this should be enough to get you
 started.
 
@@ -85,4 +77,4 @@ started.
 http://docs.oracle.com/javafx/2/api/javafx/scene/web/WebEngine.html "Web Engine API"
 [1]: http://en.wikipedia.org/wiki/WebKit "WebKit"
 [2]: http://medialab.github.io/artoo "Artoo.js"
-[3]: https://getfirebug.com/firebuglite "Firebug Lite"
+
