@@ -9,6 +9,7 @@
            [javafx.scene Scene]
            [javafx.scene.layout BorderPane]
            [java.awt BorderLayout]
+           [java.awt Dimension]
            [javafx.application Application Platform]
            [javafx.embed.swing JFXPanel]
            [javafx.beans.value ChangeListener]
@@ -29,7 +30,8 @@
     ;; setup our swing frame
     (doto jframe
       (.setDefaultCloseOperation JFrame/DISPOSE_ON_CLOSE)
-      (.setLayout (BorderLayout.)))
+      (.setLayout (BorderLayout.))
+      (.setSize (Dimension. 800 600)))
     (.add (.getContentPane jframe) jfxpanel BorderLayout/CENTER)
 
     (SwingUtilities/invokeLater
